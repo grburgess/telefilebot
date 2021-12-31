@@ -1,5 +1,5 @@
 import pytest
-
+import time
 from pathlib import Path
 
 from telefilebot.directory import Directory
@@ -89,6 +89,8 @@ def test_directory_ext(test_dir):
 
 
     old_time = d._known_files["file.txt"]
+
+    time.sleep(5)
 
     (p / "file.txt").touch()
 
