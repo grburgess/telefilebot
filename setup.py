@@ -25,5 +25,14 @@ setup(
 
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
+    py_modules=["listen"],
+    entry_points={
+        "console_scripts": [
+            "telefilebot = listen:listen"
+
+            ]
+
+
+        }
     #        package_data={"": extra_files},
 )

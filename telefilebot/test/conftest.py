@@ -5,10 +5,27 @@ from glob import glob
 from pathlib import Path
 
 import pytest
-from telefilebot.utils.package_utils import get_path_of_data_file
 
 
 
-@pytest.fixture(scope="session")
-def thing():
-    pass
+@pytest.fixture(scope="function")
+def test_dir():
+
+
+    test_path = "test"
+
+    p = Path(test_path)
+
+    p.mkdir()
+
+    p2 = p / "file.txt"
+
+    p2.touch()
+
+
+    yield test_path
+
+
+
+
+    shutil.rmtree(test_path)
