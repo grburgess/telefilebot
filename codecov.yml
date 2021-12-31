@@ -1,0 +1,3 @@
+ignore:
+  - "telefilebot/test"
+  - "telefilebot/_version.py"
