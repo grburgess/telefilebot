@@ -68,7 +68,7 @@ background) and enter
 
 ```bash
 
-telefilebot --file=input.yml
+telefilebot --file input.yml
 
 ```
 
