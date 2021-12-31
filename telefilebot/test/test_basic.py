@@ -44,7 +44,12 @@ def test_directory(test_dir):
 
     old_time = d._known_files["file.txt"]
 
-    (p / "file.txt").touch()
+    time.sleep(5)
+
+    with (p / "file.txt").open("w") as f:
+
+        f.write("testing")
+
 
 
     d.check()
@@ -92,7 +97,11 @@ def test_directory_ext(test_dir):
 
     time.sleep(5)
 
-    (p / "file.txt").touch()
+    with (p / "file.txt").open("w") as f:
+
+        f.write("testing")
+
+
 
 
     d.check()
