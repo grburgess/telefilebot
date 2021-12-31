@@ -323,7 +323,6 @@ def silence_warnings():
     supress warning messages in console and file usr logs
     """
 
-    telefilebot_usr_log_handler.addFilter(warning_filter)
     telefilebot_console_log_handler.addFilter(warning_filter)
 
 
@@ -332,7 +331,6 @@ def activate_warnings():
     supress warning messages in console and file usr logs
     """
 
-    telefilebot_usr_log_handler.removeFilter(warning_filter)
     telefilebot_console_log_handler.removeFilter(warning_filter)
 
 
@@ -352,11 +350,7 @@ def setup_logger(name):
 
     # add the handlers
 
-
-
     log.addHandler(telefilebot_console_log_handler)
-
-
 
     # we do not want to duplicate teh messages in the parents
     log.propagate = False
