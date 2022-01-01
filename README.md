@@ -51,15 +51,15 @@ wait_time: 1
 ```
 
 
-What do these things mean? The name just names the bot. The `chat_id` and
-`token` are from you group and bot you created. `logging` sets the verbosity of
-the printout in the terminal. For each directory you want to monitor, create an
-entry with the directory path. If you want to monitor only certain file
+What do these things mean? 
+* The name just names the bot. 
+* The `chat_id` and `token` are from the group and bot you created. 
+* `logging` sets the verbosity of the printout in the terminal. 
+* For each directory you want to monitor, create an entry with the directory path. If you want to monitor only certain file
 extensions, list them under the director. If you only want to recurse down to a
 certain level in the file structure, enter a recursion limit (here `zero` means
 only the path entered and no sub-folders will be scanned).
-
-Finally, the `wait_time` argument specifies in minutes how long to wait between
+* Finally, the `wait_time` argument specifies in minutes how long to wait between
 checks of the file system.
 
 Now simply fire up a tmux session (or however you want to the bot to run in the
