@@ -107,8 +107,16 @@ class TeleFileBot:
     def listen(self):
 
 
+        self._speak("Starting up!")
+
         while True:
 
-            self._check_directories()
+            try:
 
-            time.sleep(self._wait_time)
+                self._check_directories()
+
+                time.sleep(self._wait_time)
+
+            except:
+
+                self._speak("Something went wrong!")

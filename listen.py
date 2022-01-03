@@ -5,6 +5,10 @@ from telefilebot import TeleFileBot, read_input_file
 from telefilebot.utils.logging import update_logging_level
 from telefilebot.utils.read_input_file import InputFile
 from telefilebot.directory import Directory
+from telefilebot.utils.logging import setup_logger
+
+
+log = setup_logger(__name__)
 
 
 @click.command()
@@ -37,4 +41,11 @@ def listen(file: str) -> None:
         wait_time=parameters.wait_time,
     )
 
-    bot.listen()
+
+    try:
+
+        bot.listen()
+
+    except:
+
+        log.error("EXITING")
