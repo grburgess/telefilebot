@@ -17,12 +17,13 @@ class LogFilter(object):
 
 
 _console_formatter = logging.Formatter(
-    ' %(message)s',
+    " %(message)s",
     datefmt="%H:%M:%S",
-
+)
 
 
 mytheme = Theme().read(get_path_of_data_file("log_theme.ini"))
+
 console = Console(theme=mytheme)
 
 telefilebot_console_log_handler = RichHandler(
@@ -35,7 +36,6 @@ telefilebot_console_log_handler = RichHandler(
 
 telefilebot_console_log_handler = logging.StreamHandler(sys.stdout)
 telefilebot_console_log_handler.setFormatter(_console_formatter)
-
 
 
 warning_filter = LogFilter(logging.WARNING)
