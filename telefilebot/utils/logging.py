@@ -1,4 +1,5 @@
 import logging
+import sys
 
 from rich.console import Console
 from rich.logging import RichHandler
@@ -34,7 +35,6 @@ telefilebot_console_log_handler = RichHandler(
 )
 
 
-telefilebot_console_log_handler = logging.StreamHandler(sys.stdout)
 telefilebot_console_log_handler.setFormatter(_console_formatter)
 
 
