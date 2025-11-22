@@ -1,6 +1,5 @@
 from pathlib import Path
-
-import pkg_resources
+from importlib import resources
 
 
 def get_path_of_data_dir() -> Path:
@@ -10,9 +9,7 @@ def get_path_of_data_dir() -> Path:
     :returns:
 
     """
-    file_path: str = pkg_resources.resource_filename("telefilebot", "data")
-
-    return Path(file_path)
+    return resources.files("telefilebot") / "data"
 
 
 def get_path_of_data_file(data_file: str) -> Path:
@@ -27,22 +24,6 @@ def get_path_of_data_file(data_file: str) -> Path:
     file_path: Path = get_path_of_data_dir() / data_file
 
     return file_path
-
-
-# def get_path_of_user_config() -> Path:
-#     """
-#     get the path to the user configuration
-
-#     :returns:
-
-#     """
-#     config_path: Path = Path().home() / ".config" / "telefilebot"
-
-#     if not config_path.exists():
-
-#         config_path.mkdir(parents=True)
-
-#     return config_path
 
 
 __all__ = [

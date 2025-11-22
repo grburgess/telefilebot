@@ -33,7 +33,7 @@ class InputFile:
     token: str = ""
     chat_id: str = ""
     directories: Dict[str, DirectoryListing] = field(default_factory=lambda: {})
-    logging: Logging = Logging()
+    logging: Logging = field(default_factory=Logging)
     wait_time: float = 1  # minute
 
 

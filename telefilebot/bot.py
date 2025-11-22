@@ -1,9 +1,8 @@
 from typing import List, Dict, Tuple
-import time
+import asyncio
 import math
 import telegram
 from telegram.error import TelegramError, RetryAfter, TimedOut, NetworkError
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .utils.logging import setup_logger
 
@@ -51,10 +50,11 @@ class TeleFileBot:
         self._rate_limit_window = 1.0  # 1 second window
         self._max_messages_per_window = 20  # Max 20 messages per second
 
-    def _rate_limit_check(self) -> None:
+    async def _rate_limit_check(self) -> None:
         """
         Implement rate limiting to avoid hitting Telegram's limits
         """
+        import time
         current_time = time.time()
 
         # Remove timestamps outside the window
@@ -68,7 +68,7 @@ class TeleFileBot:
             sleep_time = self._rate_limit_window - (current_time - self._message_timestamps[0])
             if sleep_time > 0:
                 logger.debug(f"Rate limit reached, sleeping for {sleep_time:.2f}s")
-                time.sleep(sleep_time)
+                await asyncio.sleep(sleep_time)
                 # Clean up old timestamps after sleeping
                 current_time = time.time()
                 self._message_timestamps = [
@@ -88,7 +88,7 @@ class TeleFileBot:
             text = text.replace(char, f'\\{char}')
         return text
 
-    def _speak(self, message: str, use_markdown: bool = True) -> None:
+    async def _speak(self, message: str, use_markdown: bool = True) -> None:
         """
         Send a message with retry logic and rate limiting
 
@@ -110,17 +110,17 @@ class TeleFileBot:
         for attempt in range(max_retries):
             try:
                 # Rate limiting
-                self._rate_limit_check()
+                await self._rate_limit_check()
 
                 # Send message
                 if use_markdown:
-                    self._bot.send_message(
+                    await self._bot.send_message(
                         chat_id=self._chat_id,
                         text=full_msg,
                         parse_mode='MarkdownV2'
                     )
                 else:
-                    self._bot.send_message(chat_id=self._chat_id, text=full_msg)
+                    await self._bot.send_message(chat_id=self._chat_id, text=full_msg)
 
                 # Success!
                 return
@@ -129,13 +129,13 @@ class TeleFileBot:
                 # Telegram asked us to wait
                 wait_time = e.retry_after
                 logger.warning(f"Telegram rate limit hit, waiting {wait_time}s")
-                time.sleep(wait_time)
+                await asyncio.sleep(wait_time)
 
             except (TimedOut, NetworkError) as e:
                 # Network issues - retry with backoff
                 if attempt < max_retries - 1:
                     logger.warning(f"Network error on attempt {attempt + 1}/{max_retries}: {e}")
-                    time.sleep(retry_delay)
+                    await asyncio.sleep(retry_delay)
                     retry_delay *= 2  # Exponential backoff
                 else:
                     logger.error(f"Failed to send message after {max_retries} attempts: {e}")
@@ -164,32 +164,27 @@ class TeleFileBot:
             logger.error(f"Error checking directory {directory._path}: {e}", exc_info=True)
             return {}
 
-    def _check_directories(self) -> None:
+    async def _check_directories(self) -> None:
         """
         Check all directories for changes, with parallel processing and batched notifications
         """
         all_changes: List[Tuple[str, str]] = []
 
-        # Check directories in parallel using ThreadPoolExecutor
-        with ThreadPoolExecutor(max_workers=min(len(self._directories), 5)) as executor:
-            # Submit all directory checks
-            future_to_dir = {
-                executor.submit(self._check_single_directory, directory): directory
-                for directory in self._directories
-            }
+        # Run directory checks in a thread pool since they're sync I/O
+        loop = asyncio.get_event_loop()
+        tasks = [
+            loop.run_in_executor(None, self._check_single_directory, directory)
+            for directory in self._directories
+        ]
 
-            # Collect results as they complete
-            for future in as_completed(future_to_dir):
-                directory = future_to_dir[future]
-                try:
-                    new_files: Dict[str, str] = future.result()
+        results = await asyncio.gather(*tasks, return_exceptions=True)
 
-                    # Collect all changes
-                    for filepath, change_type in new_files.items():
-                        all_changes.append((filepath, change_type))
-
-                except Exception as e:
-                    logger.error(f"Error processing directory {directory._path}: {e}", exc_info=True)
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                logger.error(f"Error processing directory {self._directories[i]._path}: {result}", exc_info=True)
+            else:
+                for filepath, change_type in result.items():
+                    all_changes.append((filepath, change_type))
 
         # If there are changes, batch them into a single message
         if all_changes:
@@ -234,9 +229,9 @@ class TeleFileBot:
 
             # Send the batched message
             full_message = "\n\n".join(msg_parts)
-            self._speak(full_message, use_markdown=True)
+            await self._speak(full_message, use_markdown=True)
 
-    def listen(self):
+    async def listen(self):
         """
         Main loop that monitors directories for changes
         """
@@ -251,28 +246,28 @@ class TeleFileBot:
             f"📂 Monitoring *{dir_count}* director{'ies' if dir_count > 1 else 'y'}\n"
             f"⏱ Check interval: *{wait_mins:.0f}* min"
         )
-        self._speak(startup_msg, use_markdown=True)
+        await self._speak(startup_msg, use_markdown=True)
 
         while True:
 
             try:
 
-                self._check_directories()
+                await self._check_directories()
 
-                time.sleep(self._wait_time)
+                await asyncio.sleep(self._wait_time)
 
             except TelegramError as e:
                 error_msg = self._escape_markdown_v2(str(e))
                 logger.error(f"Telegram error in main loop: {e}", exc_info=True)
                 try:
-                    self._speak(f"⚠️ *Telegram Error*\n`{error_msg}`", use_markdown=True)
+                    await self._speak(f"⚠️ *Telegram Error*\n`{error_msg}`", use_markdown=True)
                 except Exception:
                     # If we can't send the error message, just log it
                     logger.error("Failed to send error notification")
                 # Continue monitoring
-                time.sleep(5)
+                await asyncio.sleep(5)
 
-            except KeyboardInterrupt:
+            except asyncio.CancelledError:
                 logger.info("Bot stopped by user")
                 try:
                     shutdown_msg = (
@@ -280,7 +275,7 @@ class TeleFileBot:
                         f"━━━━━━━━━━━━━━━━━━━━\n"
                         f"👋 Goodbye\\!"
                     )
-                    self._speak(shutdown_msg, use_markdown=True)
+                    await self._speak(shutdown_msg, use_markdown=True)
                 except Exception:
                     pass
                 break
@@ -289,9 +284,9 @@ class TeleFileBot:
                 error_msg = self._escape_markdown_v2(str(e))
                 logger.error(f"Unexpected error in main loop: {e}", exc_info=True)
                 try:
-                    self._speak(f"⚠️ *Unexpected Error*\n`{error_msg}`", use_markdown=True)
+                    await self._speak(f"⚠️ *Unexpected Error*\n`{error_msg}`", use_markdown=True)
                 except Exception:
                     # If we can't send the error message, just log it
                     logger.error("Failed to send error notification")
                 # Continue monitoring
-                time.sleep(5)
+                await asyncio.sleep(5)

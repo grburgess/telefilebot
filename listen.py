@@ -1,5 +1,5 @@
+import asyncio
 import click
-from click.termui import prompt
 
 from telefilebot import TeleFileBot, read_input_file
 from telefilebot.utils.logging import update_logging_level
@@ -9,6 +9,14 @@ from telefilebot.utils.logging import setup_logger
 
 
 log = setup_logger(__name__)
+
+
+async def run_bot(bot: TeleFileBot) -> None:
+    """Run the bot's listen loop with proper signal handling."""
+    try:
+        await bot.listen()
+    except asyncio.CancelledError:
+        log.info("Bot cancelled")
 
 
 @click.command()
@@ -41,11 +49,7 @@ def listen(file: str) -> None:
         wait_time=parameters.wait_time,
     )
 
-
     try:
-
-        bot.listen()
-
-    except:
-
-        log.error("EXITING")
+        asyncio.run(run_bot(bot))
+    except KeyboardInterrupt:
+        log.info("EXITING")
