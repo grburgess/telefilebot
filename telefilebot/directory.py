@@ -1,4 +1,3 @@
-from logging import currentframe
 from pathlib import Path
 from typing import Optional, List, Dict
 
@@ -106,17 +105,17 @@ class Directory:
 
     def check(self) -> Dict[str, str]:
         """
-        check the current directory against the known file
-        list
-
+        Check the current directory against the known file list.
+        Returns a dictionary mapping filenames to their change type: "new", "modified", or "deleted"
         """
 
-        new_files: Dict[str, str] = {}
+        changes: Dict[str, str] = {}
 
         new_listings: Dict[str, float] = self._descend_directory(
             self._path, current_depth=0
         )
 
+        # Check for new and modified files
         for k, v in new_listings.items():
 
             # first check the known files and
@@ -131,7 +130,7 @@ class Directory:
 
                     # this file has been modified
 
-                    new_files[k] = "modified"
+                    changes[k] = "modified"
 
                     # now lets update the time
                     # in the original list
@@ -146,7 +145,7 @@ class Directory:
 
                 # this is a new file
 
-                new_files[k] = "new"
+                changes[k] = "new"
 
                 # lets add it to the known list
 
@@ -154,6 +153,16 @@ class Directory:
 
                 log.debug(f"updated the known file list with {k}")
 
+        # Check for deleted files
+        deleted_files = set(self._known_files.keys()) - set(new_listings.keys())
+
+        for deleted_file in deleted_files:
+            changes[deleted_file] = "deleted"
+            log.debug(f"file deleted: {deleted_file}")
+
+            # Remove from known files
+            del self._known_files[deleted_file]
+
         log.debug(f"finished checking {self._path}")
 
-        return new_files
+        return changes
